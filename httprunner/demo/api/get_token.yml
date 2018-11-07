@@ -1,0 +1,63 @@
+- api:
+    def: get_req($client_id,$redirect_uri,$response_type,$scope,$state)
+    request:
+        # url:  '/auth'
+        url: 'https://sso-demo.digitalenergycloud.com/auth'
+        method:  'GET'
+        params:
+            client_id:  $client_id
+            redirect_uri: $redirect_uri
+            response_type: $response_type
+            scope: $scope
+            state: $state
+    validate:
+        - eq: ["status_code", 200]
+
+- api:
+    def: get_auth_local($login,$password,$req)
+    request:
+        # url:  '/auth/local'
+        url: 'https://sso-demo.digitalenergycloud.com/auth/local'
+        headers:
+            'Content-Type':  'application/x-www-form-urlencoded'
+        method:  'POST'
+        params:
+            req:  '$req'
+        allow_redirects: False
+        data: 
+            login: $login
+            password: $password
+    validate:
+        - eq: ["status_code", 303]
+    extract:
+        - headersLocation: headers.Location
+
+- api:
+    def: get_code($headersLocation)
+    request:
+        # url:  '/approval'
+        url: 'https://sso-demo.digitalenergycloud.com/$headersLocation'
+        method:  'GET'
+        allow_redirects: False
+    validate:
+        - eq: ["status_code", 303]
+    # extract:
+    #     - code: code=(.*)&
+
+- api:
+    def: get_token($code,$Authorization,$grant_type,$redirect_uri)
+    request:
+        # url: /token
+        url: 'https://sso-demo.digitalenergycloud.com/token'
+        method: POST
+        headers:
+            Content-Type: application/x-www-form-urlencoded
+            Authorization: 'Basic $Authorization'
+        data: 
+            code: $code
+            grant_type: $grant_type
+            redirect_uri: $redirect_uri
+    validate:
+        - eq: ["status_code", 200]
+    extract:
+        - token: content.access_token

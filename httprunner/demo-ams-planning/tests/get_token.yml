@@ -1,0 +1,77 @@
+- config:
+    name: sso_token
+    request:
+        base_url: https://sso-demo.digitalenergycloud.com
+
+- test:
+    name:  '/auth'
+    request:
+        url:  '/auth'
+        method:  'GET'
+        params:
+             client_id:  'nz-mdr'
+             redirect_uri:  'https://demo-ams-01.digitalenergycloud.com/sso/callback'
+             response_type:  'code'
+             scope:  'openid email groups profile offline_access'
+             state:  ''
+    validate:
+    - eq: ["status_code", 200]
+    extract:
+        - req: req=(.*)" target
+    
+
+- test:
+    name: '/auth/local'
+    request:
+        url:  '/auth/local'
+        headers:
+            'Content-Type':  'application/x-www-form-urlencoded'
+        method:  'POST'
+        params:
+            req:  '$req'
+        allow_redirects: False
+        data: 
+            login: regulator@yopmail.com
+            password: regulator
+    validate:
+    - eq:
+        - status_code
+        - 303
+    extract:
+        - headers.Location: headers.Location
+
+- test:
+    name: '/approval'
+    request:
+        url:  '/approval'
+        method:  'GET'
+        params:
+            'req':  '$req'
+        allow_redirects: False
+    validate:
+    - eq:
+        - status_code
+        - 303
+    extract:
+        # - code: headers.Location
+         - code: code=(.*)&
+
+
+- test:
+    name: get_token
+    request:
+        url: /token
+        method: POST
+        headers:
+            Content-Type: application/x-www-form-urlencoded
+            Authorization: 'Basic bnotbWRyOkR6WFp4eURPYlNwc25SN3FMcVE0cDFMRVZvSWlFNDll'
+        data: 
+            code: $code
+            grant_type: authorization_code
+            redirect_uri: https://demo-ams-01.digitalenergycloud.com/sso/callback    
+    validate:
+        -   eq:
+            - status_code
+            - 200
+    extract:
+        - access_token: content.access_token

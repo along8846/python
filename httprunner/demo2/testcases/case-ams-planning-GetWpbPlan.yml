@@ -1,0 +1,54 @@
+- config:
+    name: create plan
+    request:
+        base_url: "https://demo-ams-01.digitalenergycloud.com"
+    parameters:
+        - login-password: ${login_account(operator)}
+    variables: 
+        - appName:  'planning'
+        - bloc:  '50119'
+        - company:  'Company_2'
+        - workflowName:  'wpb'
+        - xlspath: '/Users/apple/Downloads/AMS-WPB-REV01-PDO2017-V2.xlsx'
+
+        - block:  '50119'
+        - year:  '2055'
+        - client_id: nz-mdr
+        - redirect_uri: https://demo-ams-01.digitalenergycloud.com/sso/callback
+        - response_type: code
+        - scope: openid email groups profile offline_access
+        - state: ''
+
+        - Authorization: bnotbWRyOkR6WFp4eURPYlNwc25SN3FMcVE0cDFMRVZvSWlFNDll
+        - grant_type: authorization_code
+
+# - test:
+#     name: get token
+#     suite: get_token()
+#     output:
+#         - token
+
+# - test:
+#     name: get planning wpb
+#     api: get_planning_wpb()
+#     extract:
+#         - all_objectId: content.0.id
+
+- test:
+    name: submit_plan
+    api: create_plan_process_instance($appName,$bloc,$company,$workflowName)
+    variables:
+        appName: $appName  
+        bloc: $bloc 
+        company:  $company
+        workflowName:  $workflowName
+    extract:
+        - task_id: content.task.id
+        - processInstanceId: content.task.processInstanceId
+
+
+
+
+# - test:
+#     name: add plan
+#     suite: add_plan()

@@ -1,0 +1,91 @@
+- config:
+    name: create plan
+    request:
+        base_url: "https://demo-ams-01.digitalenergycloud.com"
+        headers:
+            # 'Authorization':  'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjcxZTBmZjgyOWZkY2FhZDdhNWFlNjQzYjk0MzU4N2VkZWNlMWM2ODYifQ.eyJpc3MiOiJodHRwczovL3Nzby1kZW1vLmRpZ2l0YWxlbmVyZ3ljbG91ZC5jb20iLCJzdWIiOiJDZ2h2Y0dWeVlYUnZjaElGYkc5allXdyIsImF1ZCI6Im56LW1kciIsImV4cCI6MTUzMzE3NDc1MywiaWF0IjoxNTMzMDg4MzUzLCJhdF9oYXNoIjoib0paYTR2b21Oa3FTYVpvZkl4c093ZyIsImVtYWlsIjoib3BlcmF0b3JAbWVlcmF3b3JrLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiT3BlcmF0b3IifQ.oRtYIWnugOvNjqaLUCv-qWi1LuDBkVABS6otovlQiEj9ObXVxbUMtM2Ou4Emfq6CSxi8gEAHt5L94hJZ9NCA2Ds2Z4on5DQbvo72wTnCxhzm3C78xDJpxLiQiosLWzeCSVa3OkqUyqh5UqvuMIzh5EsxxM2Y9WJycyJnnBK9b95kiHIF48MMb4iVjuY1xPrRJBSZaGhypdy5JJul_Utvo26N_Rkblq_9l81lFqwoMS2IICXXeLYE5bhbEtbl8DBf3AOO2TFFQVwbzH_7l-i6dEPTMUa_mwEFVf6xNqSpZ32Nz7GurVWPQ0RikbbpQsIfdE2Kw-1PTu50aQNkVhv5LQ'
+            Authorization: 'Bearer $token'
+    parameters:
+        - login-password: ${login_account(operator)}
+    variables: 
+        - appName:  'planning'
+        - bloc:  '50119'
+        - company:  'Company_2'
+        - workflowName:  'wpb'
+        - xlspath: '/Users/apple/Downloads/AMS-WPB-REV01-PDO2017-V2.xlsx'
+
+        - block:  '50119'
+        - year:  '2055'
+        - client_id: nz-mdr
+        - redirect_uri: https://demo-ams-01.digitalenergycloud.com/sso/callback
+        - response_type: code
+        - scope: openid email groups profile offline_access
+        - state: ''
+
+        - Authorization: bnotbWRyOkR6WFp4eURPYlNwc25SN3FMcVE0cDFMRVZvSWlFNDll
+        - grant_type: authorization_code
+
+- test:
+    name: submit_plan
+    api: create_plan_process_instance($appName,$bloc,$company,$workflowName)
+    variables:
+        appName: $appName  
+        bloc: $bloc 
+        company:  $company
+        workflowName:  $workflowName
+    extract:
+        - task_id: content.task.id
+        - processInstanceId: content.task.processInstanceId    
+
+- test:
+    name: add plan info xls
+    api: wpb_upload($block,$company,$processInstanceId,$year,$xlspath)
+    variables:
+        block:  $block
+        company:  $company
+        processInstanceId:  $processInstanceId
+        year:  $year
+        xlspath: $xlspath
+    extract:
+        - originalFileId: content.metaData.originalFileId
+    #      - task_id: content.task.id
+    #      - processInstanceId: content.task.processInstanceId
+
+- test:
+    name: commit plan
+    api: wpb_commit($year,$company,$block,$processInstanceId)
+    extract:
+        - objectId: content.objectId
+    variables:
+        block:  $block
+        company:  $company
+        processInstanceId:  $processInstanceId
+        year:  $year
+
+- test:
+    name: push task when committed plan
+    api: post_tasks_taskid($objectId)
+    
+- test:
+    name: comfirm plan commit success
+    api: get_planning_wpb()
+    validate:
+    - eq: ["status_code", 200]
+    - contains: [',"id":"(.*)",',$objectId]
+        # - {"check": ',"id":"(.*)",', "comparator": "contains", "expect": "5b61bc387b5cfc0001ef7d32"}
+    
+- test:
+    name: get objectId status
+    api: get_planning_wpb_objectId_status($objectId)
+    variables:
+        objectId: $objectId
+    validate:
+    - eq: ["status_code", 200]
+    - eq: ["content.metaData.status","loaded"]
+
+
+
+
+- test:
+    name: add plan
+    suite: add_plan()

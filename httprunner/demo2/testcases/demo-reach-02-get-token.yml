@@ -1,0 +1,27 @@
+- config:
+    name: demo reach 02 get token
+    request:
+        base_url: "https://demo-reach-01.digitalenergycloud.com"
+    parameters:
+        - login-password: ${login_account(admin)}
+    variables: 
+        - appName:  'planning'
+        - bloc:  '50119'
+        - company:  'Company_2'
+        - workflowName:  'wpb'
+        
+        - block:  '50119'
+        - year:  '2051'
+        - client_id: meera-dx
+        - redirect_uri: https://demo-reach-01.digitalenergycloud.com/sso/callback
+        - response_type: code
+        - scope: openid email groups profile offline_access
+        - state: ''
+
+        - Authorization: bWVlcmEtZHg6RHpYWnh5RE9iU3BzblI3cUxxUTRwMUxFVm9JaUU0OWU=
+        - grant_type: authorization_code
+- test:
+    name: get token
+    suite: get_token()
+    output:
+        - token

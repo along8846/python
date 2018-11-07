@@ -1,0 +1,57 @@
+- config:
+    name: demo ams get access token
+    def: get_token()
+    request: 
+        base_url: $base_url
+        # base_url: https://sso-demo.digitalenergycloud.com
+    parameters:
+        - login-password: ${login_account(operator)}
+    variables: 
+        - client_id: nz-mdr
+        - redirect_uri: https://demo-ams-01.digitalenergycloud.com/sso/callback
+        - response_type: code
+        - scope: openid email groups profile offline_access
+        - state: ''
+
+        - Authorization: bnotbWRyOkR6WFp4eURPYlNwc25SN3FMcVE0cDFMRVZvSWlFNDll
+        - grant_type: authorization_code
+    output:
+        - token
+
+- test:
+    name: get req
+    api: get_req($client_id,$redirect_uri,$response_type,$scope,$state)
+    variables: 
+        - client_id:  $client_id
+        - redirect_uri: $redirect_uri
+        - response_type: $response_type
+        - scope: $scope
+        - state: $state
+    extract:
+        - req: req=(.*)" target
+
+- test:
+    name: get auth local
+    api: get_auth_local($login,$password,$req)
+    variables:
+        - login: $login
+        - password: $password
+    extract:
+        - headersLocation: headers.Location
+
+- test:
+    name: get code
+    api: get_code($headersLocation)
+    extract:
+        - code: code=(.*)&
+
+- test:
+    name: get token
+    api: get_token($code,$Authorization,$grant_type,$redirect_uri)
+    variables:
+        - code: $code
+        - Authorization: $Authorization #front-end deside it by buildfile
+        - grant_type: $grant_type
+        - redirect_uri: $redirect_uri
+    extract:
+        - token: content.access_token

@@ -1,0 +1,95 @@
+- api:
+    def: get_req($client_id,$redirect_uri,$response_type,$scope)
+    request:
+        # url:  '/auth'
+        url: 'https://sso-demo.digitalenergycloud.com/auth'
+        method:  'GET'
+        params:
+            client_id:  $client_id
+            redirect_uri: $redirect_uri
+            response_type: $response_type
+            scope: $scope
+            state: ''
+            # client_id:  'nz-mdr'
+            # redirect_uri:  'https://demo-ams-01.digitalenergycloud.com/sso/callback'
+            # response_type:  'code'
+            # scope:  'openid email groups profile offline_access'
+    validate:
+    - eq: ["status_code", 200]
+    extract:
+        - req: req=(.*)" target
+    
+
+- api:
+    def: get_auth_local($login,$password)
+    request:
+        # url:  '/auth/local'
+        url: 'https://sso-demo.digitalenergycloud.com/auth/local'
+        headers:
+            'Content-Type':  'application/x-www-form-urlencoded'
+        method:  'POST'
+        params:
+            req:  '$req'
+        allow_redirects: False
+        data: 
+            login: $login
+            password: $password
+            # login: regulator@yopmail.com
+            # password: regulator
+    validate:
+    - eq:
+        - status_code
+        - 303
+    extract:
+        - headers.Location: headers.Location
+
+- api:
+    def: get_code()
+    request:
+        # url:  '/approval'
+        url: 'https://sso-demo.digitalenergycloud.com/approval'
+        method:  'GET'
+        params:
+            'req':  '$req'
+        allow_redirects: False
+    validate:
+    - eq:
+        - status_code
+        - 303
+    extract:
+        # - code: headers.Location
+         - code: code=(.*)&
+
+
+- api:
+    def: get_token()
+    request:
+        # url: /token
+        url: 'https://sso-demo.digitalenergycloud.com/token'
+        method: POST
+        headers:
+            Content-Type: application/x-www-form-urlencoded
+            Authorization: 'Basic bnotbWRyOkR6WFp4eURPYlNwc25SN3FMcVE0cDFMRVZvSWlFNDll'
+        data: 
+            code: $code
+            grant_type: authorization_code
+            redirect_uri: https://demo-ams-01.digitalenergycloud.com/sso/callback    
+    validate:
+        -   eq:
+            - status_code
+            - 200
+    extract:
+        - token: content.access_token
+
+
+# - api:
+#     def: get_plan()
+#     request:
+#         url:  '/docs/api/v2/planning/wpb?'
+#         method:  'GET'
+#         headers:
+#             'Authorization':  'Bearer $token22'
+#             'content-type':   'application/json'
+
+#     validate:
+#     - eq: ["status_code", 200]
